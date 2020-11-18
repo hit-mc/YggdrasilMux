@@ -42,7 +42,7 @@ def hasJoined():
     # print(f'Received requests :{args}')
     json_str, status_code = mux.hasJoined(req.args)
     j = json.loads(json_str)
-    print(f'Response: {json_str}, {status_code}')
+    logging.info(f'Mux make response with statcode={status_code}: {json_str}')
     # return j, status_code
     return Response(json.dumps(j, indent=4), status=status_code, mimetype='application/json; charset=utf8')
 

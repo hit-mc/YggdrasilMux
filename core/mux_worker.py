@@ -33,6 +33,7 @@ class MuxWorker(Thread):
         while self.__run and counter:
             counter -= 1
             try:
+                logging.debug(f'Invoke hasJoined of server {server}.')
                 response, code = server.hasJoined(form)
                 if code == 200 and response:
                     if self.__run:  # success
