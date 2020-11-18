@@ -19,7 +19,7 @@ VERSION = "1.0-dev"
 app = Flask(__name__)
 mux = MuxServer([
     'https://sessionserver.mojang.com',
-    'https://mcskin.littleservice.cn'
+    'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver'
 ])
 
 
