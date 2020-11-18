@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from json import JSONDecodeError
 
 from flask import Flask, Response
 from flask import request as req
@@ -41,10 +42,15 @@ def hasJoined():
     logging.debug('hasJoined is called.')
     # print(f'Received requests :{args}')
     json_str, status_code = mux.hasJoined(req.args)
-    j = json.loads(json_str)
+    try:
+        j = json.loads(json_str)
+        json_str = json.dumps(j, indent=4)
+    except JSONDecodeError:
+        logging.warning(f'Failed to decode string {json_str} as json. Use raw string instead.')
+
     logging.info(f'Mux make response with statcode={status_code}: {json_str}')
     # return j, status_code
-    return Response(json.dumps(j, indent=4), status=status_code, mimetype='application/json; charset=utf8')
+    return Response(json_str, status=status_code, mimetype='application/json; charset=utf8')
 
 
 # TODO: Implement `hasJoined` API
