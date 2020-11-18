@@ -1,9 +1,8 @@
-from core.concrete_server import ConcreteYggdrasilSessionServer
-from core.yggdrasil import YggdrasilSessionServer
-from logging import getLogger
-from core.mux_worker import MuxWorker, MuxJoinThread
-import time
 from queue import Queue
+
+from core.concrete_server import ConcreteYggdrasilSessionServer
+from core.mux_worker import MuxWorker, MuxJoinThread
+from core.yggdrasil import YggdrasilSessionServer
 
 
 class MuxServer(YggdrasilSessionServer):
@@ -12,7 +11,6 @@ class MuxServer(YggdrasilSessionServer):
     """
 
     __servers = []
-    __logger = getLogger(__name__)
 
     def __init__(self, server_urls):
         """
@@ -34,7 +32,7 @@ class MuxServer(YggdrasilSessionServer):
         response, code = queue.get(block=True)
         for worker in workers:
             worker.cancel()
-        self.__logger.info(f'Mux make response {response} with code {code} to client.')
+        # self.__logger.info(f'Mux make response {response} with code {code} to client.')
         return response, code
         # self.__logger.info(f'Mux make empty response with code 204 to the client.')
         # # Default response: have not joined in any server.
