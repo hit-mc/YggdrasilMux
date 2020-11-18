@@ -42,9 +42,12 @@ class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
             method = method.upper()
             logging.debug(f'Make request with form {json.dumps(form)}')
             if method == 'GET':
-                r = requests.get(url, params=form, timeout=3)
+                r = requests.get(url, params=form, timeout=3, headers={'User-Agent': 'Java/1.8.0_271'})
             elif method == 'POST':
-                r = requests.post(url, data=json.dumps(form), headers={'Content-Type': 'application/json'}, timeout=3)
+                r = requests.post(url, data=json.dumps(form), headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Java/1.8.0_271'
+                }, timeout=3)
             else:
                 raise ValueError(f'Unsupported method {method}')
             logging.debug(
