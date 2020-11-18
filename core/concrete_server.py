@@ -38,15 +38,19 @@ class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
         return self._server_url + 'session/minecraft/profile'
 
     def _form_request(self, url, form, method='GET') -> (str, int):
-
-        method = method.upper()
-        logging.debug(f'Make request with form {json.dumps(form)}')
-        if method == 'GET':
-            r = requests.get(url, params=form)
-        elif method == 'POST':
-            r = requests.post(url, data=json.dumps(form), headers={'Content-Type': 'application/json'})
-        else:
-            raise ValueError(f'Unsupported method {method}')
-        logging.debug(f'Form request returns (status_code={r.status_code}, headers={"".join([f"{k}: {v}; " for k,v in r.headers.items()])}'
-                           f', text={r.text})')
-        return r.text, r.status_code
+        try:
+            method = method.upper()
+            logging.debug(f'Make request with form {json.dumps(form)}')
+            if method == 'GET':
+                r = requests.get(url, params=form, timeout=3)
+            elif method == 'POST':
+                r = requests.post(url, data=json.dumps(form), headers={'Content-Type': 'application/json'}, timeout=3)
+            else:
+                raise ValueError(f'Unsupported method {method}')
+            logging.debug(
+                f'Form request returns (status_code={r.status_code}, headers={"".join([f"{k}: {v}; " for k, v in r.headers.items()])}'
+                f', text={r.text})')
+            return r.text, r.status_code
+        except IOError as e:
+            logging.error(f'Failed to {method} url {url} with form {form}: {e}')
+            return '', 500
