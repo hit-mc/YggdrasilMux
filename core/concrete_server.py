@@ -1,5 +1,7 @@
 from core.yggdrasil import YggdrasilSessionServer
 import requests
+import json
+import logging
 
 
 class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
@@ -8,6 +10,7 @@ class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
         if not server_url.endswith('/'):
             server_url += '/'
         self._server_url = server_url
+        self._logger.setLevel(logging.DEBUG)
 
     def __str__(self):
         return self.get_server_url()
@@ -33,6 +36,15 @@ class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
     def _url_profile(self):
         return self._server_url + 'session/minecraft/profile'
 
-    def _form_request(self, url, form) -> (str, int):
-        r = requests.post(self._url_join(), data=form)
+    def _form_request(self, url, form, method='GET') -> (str, int):
+
+        method = method.upper()
+        self._logger.debug(f'Make request with form {json.dumps(form)}')
+        if method == 'GET':
+            r = requests.get(url, params=form)
+        elif method == 'POST':
+            r = requests.post(url, data=json.dumps(form), headers={'Content-Type': 'application/json'})
+        else:
+            raise ValueError(f'Unsupported method {method}')
+        self._logger.debug(f'Form request returns ({r.text}, {r.status_code})')
         return r.text, r.status_code

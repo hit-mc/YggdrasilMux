@@ -1,6 +1,9 @@
 from core.concrete_server import ConcreteYggdrasilSessionServer
 from core.yggdrasil import YggdrasilSessionServer
 from logging import getLogger
+from core.mux_worker import MuxWorker, MuxJoinThread
+import time
+from queue import Queue
 
 
 class MuxServer(YggdrasilSessionServer):
@@ -19,30 +22,21 @@ class MuxServer(YggdrasilSessionServer):
         self.__servers = [ConcreteYggdrasilSessionServer(url) for url in server_urls]
 
     def hasJoined(self, form) -> (str, int):
-        for server in self.__servers:
-            assert isinstance(server, YggdrasilSessionServer)
-            retry_counter = 5
-            while retry_counter:
-                retry_counter -= 1
-                try:
-                    response, code = server.hasJoined(form)
-                    if code == 200 and response:
-                        self.__logger.debug(f'Relay response {response} with code 200 from server {server}.')
-                        return code, response  # User has joined in this server.
-                    elif code == 204:
-                        break  # Valid response. User has not joined in this server. Try next server.
-                    else:
-                        self.__logger.warning(f'Server {server} sent an '
-                                              f'invalid response with payload {form}: '
-                                              f'code={code}, response={response}. Retry.')
-                    # Otherwise the request has failed. Try again.
-                except Exception as e:
-                    self.__logger.warning(f'An exception occurred while querying server {server}: {e}.')
-                    # Request to this has failed. Try again.
-            if not retry_counter:
-                # Max retry times reached. Skip this server.
-                self.__logger.error(f'Request to server {server} '
-                                    f'failed too many times. Skip this server.')
-        self.__logger.debug(f'Mux make empty response with code 204 to the client.')
-        # Default response: have not joined in any server.
-        return '', 204
+
+        # For all sub servers, we create request threads for every one of them,
+        # in order to eliminate unnecessary wait, and finally speed up the joining progress.
+        queue = Queue()
+        workers = [MuxWorker(queue, server, form) for server in self.__servers]
+        for worker in workers:
+            worker.start()
+        join_thread = MuxJoinThread(queue, workers, default_response=('', 204))
+        join_thread.start()
+        response, code = queue.get(block=True)
+        for worker in workers:
+            worker.cancel()
+        self.__logger.info(f'Mux make response {response} with code {code} to client.')
+        return response, code
+        # self.__logger.info(f'Mux make empty response with code 204 to the client.')
+        # # Default response: have not joined in any server.
+        # return '', 204
+

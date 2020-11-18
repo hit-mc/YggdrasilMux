@@ -1,10 +1,13 @@
 import requests
+from logging import getLogger
 
 
 class YggdrasilSessionServer:
     """
     Yggdrasil session server interface
     """
+
+    _logger = getLogger(__name__)
 
     # def authenticate(self, form) -> (str, int):
     #     """
