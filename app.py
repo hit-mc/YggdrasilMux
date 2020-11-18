@@ -9,8 +9,8 @@ from core.mux import MuxServer
 
 # from werkzeug.serving import WSGIRequestHandler
 
-# logging.basicConfig(filename='ym.log', filemode='a', level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='ym.log', filemode='a', level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 logging.info('YggdrasilMux is starting ...')
 logging.debug('DEBUG logging is enabled.')
 
