@@ -37,15 +37,15 @@ class MuxWorker(Thread):
                 start_time = time.time()
                 response, code = server.hasJoined(form)
                 end_time = time.time()
-                if end_time - start_time > 0.5:
-                    logging.warning(f'Request hasJoined took {round((end_time - start_time) * 1000, 2)}ms!')
+                if end_time - start_time >= 1:
+                    logging.warning(f'Request hasJoined to server {server} took {round((end_time - start_time) * 1000, 2)}ms!')
                 if code == 200 and response:
                     if self.__run:  # success
-                        logging.info(f'Relay response {response} with code 200 from server {server}.')
+                        logging.info(f'Server {server} returned a valid response: {response}.')
                         self.__queue.put((response, code))  # User has joined in this server.
                     return
                 elif code == 204:
-                    logging.info(f'Server returned 204, user has not joined in server {server}.')
+                    logging.info(f'Server {server} returned 204, user has not joined in.')
                     return  # Valid response. User has not joined in this server. Try next server.
                 else:
                     logging.warning(f'Server {server} sent an '
