@@ -1,3 +1,9 @@
+import json
+import logging
+
+import requests
+
+
 class YggdrasilSessionServer:
     """
     Yggdrasil session server interface
@@ -204,3 +210,91 @@ class YggdrasilSessionServer:
         :return:
         """
         raise NotImplementedError()
+
+
+class ConcreteYggdrasilSessionServer(YggdrasilSessionServer):
+
+    def __init__(self, server_url: str):
+        if not server_url.endswith('/'):
+            server_url += '/'
+        self._server_url = server_url
+
+    def __str__(self):
+        return self.get_server_url()
+
+    def join(self, form) -> (str, int):
+        return self._form_request(self._url_join(), form)
+
+    def hasJoined(self, form) -> (str, int):
+        return self._form_request(self._url_has_joined(), form)
+
+    def profile(self, form) -> (str, int):
+        return self._form_request(self._url_profile(), form)
+
+    def get_server_url(self) -> str:
+        return self._server_url
+
+    def _url_has_joined(self):
+        return self._server_url + 'sessionserver/session/minecraft/hasJoined'
+
+    def _url_join(self):
+        return self._server_url + 'sessionserver/session/minecraft/join'
+
+    def _url_profile(self):
+        return self._server_url + 'sessionserver/session/minecraft/profile'
+
+    def _form_request(self, url, form, method='GET') -> (str, int):
+        try:
+            method = method.upper()
+            logging.debug(f'Make request with form {json.dumps(form)}')
+            if method == 'GET':
+                r = requests.get(url, params=form, timeout=3, headers={'User-Agent': 'Java/1.8.0_271'})
+            elif method == 'POST':
+                r = requests.post(url, data=json.dumps(form), headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Java/1.8.0_271'
+                }, timeout=3)
+            else:
+                raise ValueError(f'Unsupported method {method}')
+            logging.debug(
+                f'Form request returns (status_code={r.status_code}, headers={"".join([f"{k}: {v}; " for k, v in r.headers.items()])}'
+                f', text={r.text})')
+            return r.text, r.status_code
+        except IOError as e:
+            logging.error(f'Failed to {method} url {url} with form {form}: {e}')
+            return '', 500
+
+
+class MojangYggdrasilSessionServer(ConcreteYggdrasilSessionServer):
+
+    def _url_has_joined(self):
+        return self._server_url + 'session/minecraft/hasJoined'
+
+    def _url_join(self):
+        return self._server_url + 'session/minecraft/join'
+
+    def _url_profile(self):
+        return self._server_url + 'session/minecraft/profile'
+
+
+def is_mojang_yggdrasil_server(url: str):
+    return url in ('https://sessionserver.mojang.com',
+                   'http://sessionserver.mojang.com',
+                   'sessionserver.mojang.com')
+
+
+class YggdrasilServerBuilder:
+
+    @staticmethod
+    def from_root_url(url: str):
+        """
+        Create a Yggdrasil server from its root API url.
+        Accept both official and 3rd-party (defined in authlib-injector wiki) server.
+        :param url: the API root.
+        :return: the server instance.
+        """
+
+        if is_mojang_yggdrasil_server(url):
+            return MojangYggdrasilSessionServer(server_url=url)
+        else:
+            return ConcreteYggdrasilSessionServer(server_url=url)

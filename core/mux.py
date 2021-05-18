@@ -1,8 +1,9 @@
+import logging
 from queue import Queue
+import requests
 
-from core.concrete_server import ConcreteYggdrasilSessionServer
 from core.mux_worker import MuxWorker, MuxJoinThread
-from core.yggdrasil import YggdrasilSessionServer
+from core.yggdrasil import YggdrasilSessionServer, YggdrasilServerBuilder
 
 
 class MuxServer(YggdrasilSessionServer):
@@ -10,6 +11,7 @@ class MuxServer(YggdrasilSessionServer):
     Yggdrasil mux server
     """
 
+    __logger = logging.getLogger()
     __servers = []
 
     def __init__(self, server_urls):
@@ -17,7 +19,19 @@ class MuxServer(YggdrasilSessionServer):
         Construct a mux server from several concrete yggdrasil servers.
         :param server_urls: concrete yggdrasil servers.
         """
-        self.__servers = [ConcreteYggdrasilSessionServer(url) for url in server_urls]
+        self.__servers = [YggdrasilServerBuilder.from_root_url(url) for url in server_urls]
+        unofficial_servers = filter(
+            lambda url: not url.startswith('http://sessionserver.mojang.com')
+                        and not url.startswith('https://sessionserver.mojang.com')
+            , server_urls)
+        try:
+            self.__root_request_target_server = unofficial_servers.__next__()
+            self.__root_response_cache = None
+        except StopIteration:
+            self.__root_request_target_server = None
+            self.__logger.warning('No applicable authserver to offer root response. '
+                                  'Any request to root will get 404 response.')
+            self.__root_response_cache = 404
 
     def hasJoined(self, form) -> (str, int):
 
@@ -38,3 +52,18 @@ class MuxServer(YggdrasilSessionServer):
         # # Default response: have not joined in any server.
         # return '', 204
 
+    def get_root(self) -> (str, int):
+        """
+        Perform GET request on root.
+        :return:
+        """
+        if self.__root_response_cache == 404:
+            return '', 404
+        elif self.__root_response_cache:
+            return self.__root_response_cache, 200
+        # make request
+        req = requests.get(self.__root_request_target_server)
+        # update cache
+        if req.status_code == 200:
+            self.__root_response_cache = req.text
+        return req.text, req.status_code

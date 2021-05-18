@@ -52,7 +52,7 @@ class MuxWorker(Thread):
                                          f'invalid response with payload {form}: '
                                          f'code={code}, response={response}. Retry.')
                 # Otherwise the request has failed. Try again.
-            except Exception as e:
+            except IOError as e:
                 logging.warning(f'An exception occurred while querying server {server}: {e}.')
                 # Request to this has failed. Try again.
             time.sleep(1)  # cool down
