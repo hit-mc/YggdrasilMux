@@ -1,1 +1,6 @@
-./ym.log
+venv/
+.idea/
+vscode/
+
+*.log
+__pycache__
